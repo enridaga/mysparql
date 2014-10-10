@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+	    <meta name="viewport" content="width=device-width, initial-scale=1">
+	    <title>SPARQL Query Interface</title>
+	
+	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+	<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+	<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css">
+	<script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+	<script type="text/javascript">
+	$(document).ready(function(){
+		refreshQueryList();
+		$("#theform").submit(function(){
+			var savedkey = saveQuery("*Latest to " + $("#endpoint").val());
+			if(savedkey){
+				localStorage['sparql.latest'] = savedkey;
+			}
+			$(this).attr("action", $("#endpoint").val());
+		});
+		if (supports_html5_storage() && typeof localStorage['sparql.latest'] !== 'undefined') {
+			loadQuery(localStorage['sparql.latest']);
+		}
+	});
+	
+	function supports_html5_storage() {
+	  try {
+	    return 'localStorage' in window && window['localStorage'] !== null;
+	  } catch (e) {
+	    return false;
+	  }
+	}
+	function refreshQueryList(){
+		if (!supports_html5_storage()) { return false; }
+		var values = {};
+		for(var x in localStorage){
+//			console.log("item",x);
+			if(x.indexOf("sparql.query.") == 0 && x.indexOf(".value", x.length - ".value".length) !== -1){
+				var name = localStorage[x.replace(".value",".name")];
+				values[x.replace(".value",".name")] = name;
+			}
+		}
+		$('#queryList')
+		    .find('option')
+		    .remove()
+		    .end().append('<option value="">(new query)</option>');
+			for(var i in values){
+				$('#queryList').append('<option value="' + i + '">' + values[i] + '</option>');				
+			}
+		
+	}
+	
+	function saveQuery(lbl){
+	    if (!supports_html5_storage()) { return false; }
+
+		var namekey = $('#queryList').val();
+		if(typeof lbl !== 'undefined' ){ // override
+			namekey = "sparql.query." + lbl + ".name";
+		}else
+		if( namekey == "" ){
+			lbl = prompt("Enter query name : ", "query name here");
+			if(!lbl){
+				return;
+			}		
+			namekey = "sparql.query." + lbl + ".name";
+		}else{
+			lbl = localStorage[namekey];
+		}
+//		console.log(namekey, lbl);
+    	localStorage[namekey] = lbl;
+    	localStorage[namekey.replace(".name",".endpoint")] = $("#endpoint").val();
+    	localStorage[namekey.replace(".name",".value")] = $("textarea#query").val();
+
+		refreshQueryList();
+		$('#queryList').val(namekey);			
+		return namekey;
+	}
+	function newQuery(){
+	    if (!supports_html5_storage()) { return false; }
+		$("#queryList").val("");
+		return saveQuery();
+	}
+	function loadQuery(nk){
+	    if (!supports_html5_storage()) { return false; }
+		var namekey = $("#queryList").val();
+		if( typeof nk !== 'undefined' && typeof localStorage[nk] !== 'undefined' ){
+			namekey = nk;
+		}
+		if(namekey == '') return false;
+		var v = localStorage.getItem(namekey.replace(".name",".value"));
+		var e = localStorage.getItem(namekey.replace(".name",".endpoint"));
+
+		if(typeof v !== 'undefined') {
+			$("textarea#query").val(v);	
+			$("#endpoint").val(e);
+			$("#queryList").val(namekey);
+			return namekey;
+		}
+		return false;
+	}
+	function removeQuery(){
+        if (!supports_html5_storage()) { return false; }
+		var namekey = $("#queryList").val();
+		localStorage.removeItem( namekey );
+		localStorage.removeItem( namekey.replace(".name",".value") );
+		localStorage.removeItem( namekey.replace(".name",".endpoint") );
+		refreshQueryList();
+	}
+	</script>
+	<style>
+	body{background-color: #eee;}
+	.row{margin-bottom: 10px;}
+	textarea.form-control{ height: 400px;}
+	</style>
+</head>
+<body>
+	<div class="container">
+	<h1>SPARQL Query Interface</h1>
+<form action="" method="GET" id="theform" class="form">
+	<div class="row">
+	<div class="col-lg-5">
+	<select class="form-control" id="endpoint">
+		 <option value="http://localhost:8890/sparql">localhost:8890/sparql</option>                                                               	
+		 <option value="http://environment.data.gov.uk/sparql/bwq/query">http://environment.data.gov.uk/sparql/bwq/query</option>
+		 <option value="http://data.ariadne-eu.org/ariadne_data/sparql">ARIADNE</option>                                                               
+		 <option value="http://sparql.jesandco.org:8890/sparql">ASN:US</option>                                                                        
+		 <option value="http://www.auth.gr/sparql">Aristotle University</option>                                                                       
+		 <option value="http://colinda.org/endpoint.php">COLINDA - Conference Linked Data</option>                                                     
+		 <option value="http://data.colinda.org/endpoint.php">COLINDA - Conference Linked Data</option>                                                
+		 <option value="http://catalogus-professorum.org/sparql">Catalogus Professorum Lipsiensis</option>                                             
+		 <option value="http://www4.wiwiss.fu-berlin.de/dblp/sparql">DBLP Bibliography Database in RDF (FU Berlin)</option>                            
+		 <option value="http://dblp.l3s.de/d2r/sparql">DBLP in RDF (L3S)</option>                                                                      
+		 <option value="http://kent.zpr.fer.hr:8080/educationalProgram/sparql">Educational programs - SISVU</option>                                   
+		 <option value="http://data.ege.edu.tr/ep/sparql">Ege University Linked Open Data</option>                                                     
+		 <option value="http://data.linkedu.eu/forge/query">FORGE Course information</option>                                                          
+		 <option value="http://sparql.linkedopendata.it/scuole">Italian public schools (LinkedOpenData.it)</option>                                    
+		 <option value="http://data.uni-muenster.de/sparql">LODUM</option>                                                                             
+		 <option value="http://data.linkededucation.org/request/lak-conference/sparql">Learning Analytics and Knowledge (LAK) Dataset</option>         
+		 <option value="http://data.aalto.fi/sparql">Linked Open Aalto Data Service</option>                                                           
+		 <option value="http://sw.unime.it:8890/sparql">Linking Italian University Statistics Project</option>                                         
+		 <option value="http://data.nature.com/query">Nature Publishing Group - ALL</option>                                                           
+		 <option value="http://data.linkedu.eu/ocw/query">Open Courseware Consortium metadata in RDF</option>                                          
+		 <option value="http://opendata.ccd.uniroma2.it/LMF/sparql/select">Open Data @ Tor Vergata</option>                                            
+		 <option value="http://data.cnr.it/sparql-proxy/">Open Data from the Italian National Research Council</option>                                
+		 <option value="http://data.organic-edunet.eu/sparql">Organic Edunet Linked Open Data</option>                                                 
+		 <option value="https://data.ox.ac.uk/sparql/">OxPoints (University of Oxford)</option>                                                        
+		 <option value="http://data.linkedu.eu/prod/query">PROD - JISC Project Directory in RDF</option>                                               
+		 <option value="http://linked.opendata.cz/sparql">Publications of Charles University in Prague</option>                                        
+		 <option value="http://seek.rkbexplorer.com/sparql/">SEEK-AT-WD ICT tools for education - Web-Share</option>                                   
+		 <option value="http://ecs.rkbexplorer.com/sparql">School of Electronics and Computer Science, University of Southampton</option>              
+		 <option value="http://data.linkedu.eu/slidewiki/query">Slidewiki (RDF/SPARQL)</option>                                                        
+		 <option value="http://asev.l3s.uni-hannover.de:8085/openrdf-sesame/repositories/TERENCE_STORY">TERENCE Reading Comprehensing Dataset</option> 
+		 <option value="http://asev.l3s.uni-hannover.de:8085/openrdf-sesame/repositories/TERENCE_STORY">TERENCE Reading Comprehension Dataset</option> 
+		 <option value="http://lod.gesis.org/thesoz/sparql">TheSoz Thesaurus for the Social Sciences (GESIS)</option>                                  
+		 <option value="http://data.linkedu.eu/kis1112/query">UNISTAT-KIS 2011/2012 in RDF (Key Information Set - UK Universities)</option>            
+		 <option value="http://data.linkedu.eu/kis/query">UNISTAT-KIS in RDF (Key Information Set - UK Universities)</option>                          
+		 <option value="http://193.145.57.56:8890/sparql">Universitat Pompeu Fabra - linked data</option>                                              
+		 <option value="http://resrev.ilrt.bris.ac.uk/data-server-workshop/sparql">University of Bristol</option>                                      
+		 <option value="http://data.linkedu.eu/hud/query">University of Huddersfield -- Circulation and Recommendation Data</option>                   
+		 <option value="http://kaunas.rkbexplorer.com/sparql">Vytautas Magnus University, Kaunas (RKBExplorer)</option>                                
+		 <option value="http://sparql.yovisto.com/">Yovisto - academic video search</option>                                                           
+		 <option value="http://data.open.ac.uk/query">data.open.ac.uk, Linked Data from the Open University</option>                                   
+		 <option value="http://sparql.data.southampton.ac.uk/">data.southampton.ac.uk with SPARQL endpoint</option>                                    
+		 <option value="http://services.data.gov.uk/education/sparql">education.data.gov.uk</option>                                                   
+		 <option value="http://meducator.open.ac.uk/resourcesrestapi/rest/meducator/sparql">mEducator: Linked Educational Resources</option>           
+		 <option value="http://www.morelab.deusto.es/joseki/articles">morelab</option>
+	</select>
+	</div>
+		<div class="col-lg-4"><select class="form-control" id="queryList"></select></div>
+		<div class="btn-group col-lg-3">
+			<button onClick="javascript:loadQuery()" class="btn btn-primary" type="button">Load</button>
+			<button onClick="javascript:saveQuery()" class="btn btn-primary" type="button">Save</button>
+			<button onClick="javascript:newQuery()" class="btn btn-primary" type="button">Save as</button>
+			<button onClick="javascript:removeQuery()" class="btn btn-primary" type="button">Delete</button>
+	</div>
+	</div>
+	<div class="row">
+	<div class="col-lg-12"><textarea class="form-control" name="query" id="query">
+prefix rdf:            <http://www.w3.org/1999/02/22-rdf-syntax-ns#> 
+prefix rdfs:           <http://www.w3.org/2000/01/rdf-schema#> 
+prefix owl:            <http://www.w3.org/2002/07/owl#> 
+prefix xsd:            <http://www.w3.org/2001/XMLSchema#> 
+prefix skos:           <http://www.w3.org/2004/02/skos/core#> 
+prefix foaf:           <http://xmlns.com/foaf/0.1/> 
+prefix scovo:          <http://purl.org/NET/scovo#> 
+prefix void:           <http://rdfs.org/ns/void#> 
+prefix qb:             <http://purl.org/linked-data/cube#> 
+prefix dcterms:        <http://purl.org/dc/terms/> 
+</textarea></div>
+	</div>
+	
+	<div class="row">
+	<div class="col-lg-1" ><label for="format">Format</label></div>
+	<div class="col-lg-2" >
+	<select class="form-control" name="format">
+		<optgroup label="Fuseki">
+		<option value ="text">text</option>
+		<option value ="xml">xml</option>
+		<option value ="json">json</option>
+	</optgroup>
+	<optgroup label="Virtuoso">
+			<option value="text/html" selected="selected">HTML</option>
+			<option value="application/vnd.ms-excel" >Spreadsheet</option>
+			<option value="application/sparql-results+xml" >XML</option>
+			<option value="application/sparql-results+json" >JSON</option>
+			<option value="application/javascript" >Javascript</option>
+			<option value="text/plain" >NTriples</option>
+			<option value="application/rdf+xml" >RDF/XML</option>
+			<option value="text/csv">CSV</option>
+			<option value="text/tab-separated-values">TSV</option>
+		</optgroup>
+	</select>
+	</div>
+	<div class="col-lg-7"><button class="btn btn-primary" type="submit">Send query</button></div>
+	</div>
+</form>
+</div>
+</body>
+</html>
